@@ -1,57 +1,77 @@
-#include "Adafruit_FRAM_I2C.h"
-#include "package_fram.h"
+#include "sensor_fram.h"
 #include <Arduino.h>
+#include <cstdint>
 
-Adafruit_FRAM_I2C fram = Adafruit_FRAM_I2C();
+#define ERR_READING 0
+int fram_cursor = 0x10;
 
-#define WRITE_OFFSET 0x10
+const float upper_bound = 100.0F;
+const float lower_bound = -100.0F;
 
-int last_write_temp = 0x10;
-int last_write_accl = 0x12;
 
-int init_fram()
+void dump_fram_to_serial()
+	{
+	// TODO: build csv string and dump to USB serial
+	}
+
+auto write_temperature_to_fram(float temp) -> int
+	{
+	// TODO: test and work
+	if (temp > upper_bound || temp < lower_bound)
+		{
+		write_to_fram(fram_cursor, ERR_READING);
+		fram_cursor += 1;
+		return EXIT_FAILURE;
+		}
+
+	auto whole_part   = (uint8_t)temp;
+	auto decimal_part = (uint8_t)((temp - whole_part) * 1000);
+	whole_part += 101;
+
+	write_to_fram(fram_cursor, whole_part);
+	fram_cursor += 1;
+	write_to_fram(fram_cursor, decimal_part);
+	fram_cursor += 1;
+
+	return EXIT_SUCCESS;
+	}
+
+auto read_temperature_from_fram(int where) -> float
+	{
+	// TODO:
+	int whole = read_from_fram(where);
+	where++; // read the next byte
+	int decimal       = read_from_fram(where);
+
+	float temperature = ((float)whole - 101.0f) + ((float)decimal / 100.0f);
+
+	return temperature;
+	}
+
+/**
+ * @brief Writes the accelerometer data to the FRAM.
+ * @param accel The accelerometer data to write to the FRAM.
+ * @return EXIT_SUCCESS if the write succeeded, EXIT_FAILURE otherwise.
+ */
+auto write_acceleration_to_fram(float accel) -> int
+	{
+	// TODO: test and work
+	// handle negative accelation values
+	auto whole_part   = (uint8_t)accel;
+	auto decimal_part = (uint8_t)((accel - whole_part) * 1000);
+	whole_part += 101;
+
+	write_to_fram(fram_cursor, whole_part);
+	fram_cursor += 1;
+	write_to_fram(fram_cursor, decimal_part);
+	fram_cursor += 1;
+
+	return EXIT_SUCCESS;
+	}
+
+auto read_acceleration_from_fram(int where) -> float
     {
-    Serial.println("init_fram()");
-    fram.begin(0x50);
-    fram.write(0x0, 28);
-    Serial.println("read from fram");
-    Serial.println(fram.read(0x0));
-
-    return EXIT_SUCCESS;
-    }
-
-int write_to_fram(int what, int where)
-    {
-    return EXIT_FAILURE;
-    }
-
-int write_temperature_to_fram(float t)
-    {
-    uint8_t* pointerToIndex0 = wrap_temperature_for_writing(t); // [u8; 2]
-    write_to_fram(pointerToIndex0[0], last_write_temp + WRITE_OFFSET);
-    write_to_fram(pointerToIndex0[1], last_write_temp + 1 + WRITE_OFFSET);
-    last_write_temp += 2;
-
-    return EXIT_SUCCESS;
-    }
-
-int write_acceleration_to_fram(float a)
-    {
-    uint8_t* pointerToIndex0 = wrap_acceleration_for_writing(a); // [u8; 4]
-    write_to_fram(pointerToIndex0[0], last_write_accl + WRITE_OFFSET);
-    write_to_fram(pointerToIndex0[1], last_write_accl + 1 + WRITE_OFFSET);
-    write_to_fram(pointerToIndex0[2], last_write_accl + 2 + WRITE_OFFSET);
-    write_to_fram(pointerToIndex0[3], last_write_accl + 3 + WRITE_OFFSET);
-    last_write_accl += 4;
-
-    return EXIT_SUCCESS;
-    }
-    
-
-int c_return_delay_test()
-    {
-    while (true)
-        {
-        }
-    return 0;
-    }
+	// TODO:
+	where = 0;
+	return 0.0F;
+	}
